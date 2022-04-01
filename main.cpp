@@ -37,6 +37,7 @@ namespace Assembler {
         }
     }
 
+    // Basic
 #define INSTR_LOADX 0x1000
 #define INSTR_STOREX 0x2000
 #define INSTR_ADD 0x3000
@@ -47,6 +48,9 @@ namespace Assembler {
 #define INSTR_SKIPCOND 0x8000
 #define INSTR_JUMPX 0x9000
 
+    // Extended
+#define INSTR_CLEAR 0xA000
+
     /**
      * Simple tokenize function which splits a string of strings
      * on a provided delimiter (e.g., a space), and returns a
@@ -55,7 +59,7 @@ namespace Assembler {
      * @param delimiter The character to split on
      * @return A vector of separate strings
      */
-    std::vector<std::string> tokenize(const std::string &in_string, char delimiter) {
+    std::vector<std::string> tokenize(const std::string& in_string, char delimiter) {
         std::string string;
         std::vector<std::string> vector;
 
@@ -103,7 +107,7 @@ namespace Assembler {
      * NOTE: No error checking. Everything is case sensitive.
      * @param asm_file_name The assembly file to open
      */
-    void assemble(const std::string &asm_file_name) {
+    void assemble(const std::string& asm_file_name) {
         std::fstream new_file;
         std::vector<std::string> asm_lines;
 
@@ -124,10 +128,10 @@ namespace Assembler {
         int address{};
         std::map<std::string, int> symbol_table;
 
-        for (const std::string &line: asm_lines) {
+        for (const std::string& line: asm_lines) {
 
             // split on space and get a vector of tokens
-            std::vector<std::string> token_one{tokenize(line, ' ')};
+            std::vector<std::string> token_one{ tokenize(line, ' ') };
 
             // END is hardcoded as the final instruction
             if (token_one.at(0) == "END") {
@@ -137,15 +141,15 @@ namespace Assembler {
             // is there a comma? we don't want it
             if (token_one.at(0).find(',') != std::string::npos) {
 
-                std::vector<std::string> token_two{tokenize(token_one.at(0), ',')};
+                std::vector<std::string> token_two{ tokenize(token_one.at(0), ',') };
 
                 // decrement, hardcoded in uppercase
                 if (token_one.at(1) == "DEC") {
                     // first string is the symbol
-                    std::string this_symbol{token_two.at(0)};
+                    std::string this_symbol{ token_two.at(0) };
 
                     // last string is the value (it's a string, so convert to int)
-                    int this_value{std::stoi(token_one.at(2))};
+                    int this_value{ std::stoi(token_one.at(2)) };
 
                     // add to symbol table
                     symbol_table.insert(std::pair<std::string, int>(this_symbol, address));
@@ -155,7 +159,7 @@ namespace Assembler {
                 }
                     // first string is the symbol, no value
                 else {
-                    std::string this_symbol{token_two.at(0)};
+                    std::string this_symbol{ token_two.at(0) };
                     symbol_table.insert(std::pair<std::string, int>(this_symbol, address));
                 }
             }
@@ -173,8 +177,8 @@ namespace Assembler {
         // op_code is upper 4 bits, symbol address is lower 12
         address = 0;    // reset address to 0
 
-        for (const std::string &line: asm_lines) {
-            std::vector<std::string> token_one{tokenize(line, ' ')};
+        for (const std::string& line: asm_lines) {
+            std::vector<std::string> token_one{ tokenize(line, ' ') };
             std::string op_code{};
             std::string symbol;
 
@@ -264,6 +268,11 @@ namespace Assembler {
                 machine_code[address] |= symbol_table.at(symbol);
             }
 
+            if (op_code == "CLEAR") {
+                // no address operand
+                machine_code[address] = INSTR_CLEAR;
+            }
+
             address += 1;
             code_length += 1;
         }
@@ -286,7 +295,7 @@ namespace Assembler {
     // RTL to manipulate registers
 
     void load_x() {
-        std::cout << "loadx -> ";
+        std::cout << "LOAD X -> ";
 
         mCPU.MBR = memory[mCPU.MAR];            // MBR <- M[MAR]
         mCPU.AC = static_cast<int>(mCPU.MBR);   // AC <- MBR
@@ -295,7 +304,7 @@ namespace Assembler {
     }
 
     void store_x() {
-        std::cout << "storex -> ";
+        std::cout << "STORE X -> ";
 
         mCPU.MBR = mCPU.AC;             // MBR <- AC
         memory[mCPU.MAR] = mCPU.MBR;    // M[MAR] <- MBR
@@ -304,7 +313,7 @@ namespace Assembler {
     }
 
     void add_x() {
-        std::cout << "addx -> ";
+        std::cout << "ADD X -> ";
 
         mCPU.MBR = memory[mCPU.MAR];                      // MBR <- M[MAR]
         mCPU.AC = static_cast<int>(mCPU.AC + mCPU.MBR);   // AC = AC + MBR
@@ -315,7 +324,7 @@ namespace Assembler {
     void sub_x() {
         // need to convert to two's complement and add?
         // tricky
-        std::cout << "subx -> ";
+        std::cout << "SUB X -> ";
 
         mCPU.MBR = memory[mCPU.MAR];                    // MBR <- M[MAR]
         mCPU.AC = static_cast<int>(mCPU.AC - mCPU.MBR); // AC = AC - MBR
@@ -324,13 +333,14 @@ namespace Assembler {
     }
 
     void input() {
-        std::cout << "input x" << std::endl;
+        std::cout << "INPUT X" << std::endl;
         mCPU.AC = static_cast<int>(mCPU.INPUT);
     }
 
     void output() {
-        std::cout << "output x" << std::endl;
+        std::cout << "OUTPUT X == ";
         mCPU.OUTPUT = mCPU.AC;
+        std::cout << "Value: " << std::dec << mCPU.OUTPUT << std::endl;
     }
 
     void halt() {
@@ -341,7 +351,7 @@ namespace Assembler {
         // manipulate PC
         // MAR has IR from decode func
 
-        std::cout << "skipcond" << std::hex << mCPU.MAR << std::endl;
+        std::cout << "SKIPCOND" << std::hex << mCPU.MAR << std::endl;
         std::cout << "..... AC: " << mCPU.AC << std::endl;
 
         // skipcond 000 : skips the next instruction if value AC < 0
@@ -370,8 +380,13 @@ namespace Assembler {
 
     void jumpx() {
         // MAR contains IR[11-0]
-        std::cout << "jumpx" << std::endl;
+        std::cout << "JUMP X" << std::endl;
         mCPU.PC = mCPU.MAR;
+    }
+
+    void clear() {
+        std::cout << "CLEAR" << std::endl;
+        mCPU.AC = 0; // AC <- 0
     }
 
     /**
@@ -382,6 +397,7 @@ namespace Assembler {
 
         std::cout << "RUNNING: start_address: " << mCPU.PC << std::endl;
         while (true) {
+            std::cout << std::endl;
             std::cout << "PC: " << mCPU.PC << std::endl;
             std::cout << "memory: " << std::hex << memory[mCPU.PC] << std::endl;
 
@@ -425,6 +441,9 @@ namespace Assembler {
                 case INSTR_JUMPX:
                     jumpx();
                     break;
+                case INSTR_CLEAR:
+                    clear();
+                    break;
                 default:
                     std::cout << "UNKNOWN CMD" << std::endl;
                     return;
@@ -435,9 +454,9 @@ namespace Assembler {
 
 int main() {
 
-    //std::string the_asm_file{"add_two.asm"};
+    std::string the_asm_file{"add_two.asm"};
     //std::string the_asm_file{"subt_two.asm"};
-    std::string the_asm_file{"loop_add.asm"};
+    //std::string the_asm_file{ "loop_add.asm" };
 
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();
