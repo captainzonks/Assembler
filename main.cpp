@@ -6,25 +6,25 @@
 namespace Assembler {
 // 12 bits, 2^12 16 bit locations == 4096
 #define MEM_SIZE 4096
-    uint memory[MEM_SIZE];
+    uint16_t memory[MEM_SIZE];
 
 // size of code / data created by assembler
 #define CODE_SIZE 4096
-    uint machine_code[CODE_SIZE];
+    uint16_t machine_code[CODE_SIZE];
 
     // globals
-    uint code_length;   // number of instructions assembled
-    uint start_address; // where program begins
+    uint16_t code_length;   // number of instructions assembled
+    uint16_t start_address; // where program begins
 
     // model for registers
     struct mCPU {
         int AC{};
-        uint PC{};
-        uint MAR{};
-        uint MBR{};
-        uint IR{};
-        uint INPUT{};
-        uint OUTPUT{};
+        uint16_t PC{};
+        uint16_t MAR{};
+        uint16_t MBR{};
+        uint16_t IR{};
+        uint16_t INPUT{};
+        uint16_t OUTPUT{};
     } mCPU;
 
     // zero out memory and code segment
@@ -378,7 +378,7 @@ namespace Assembler {
      * Simulates the Fetch -> Decode -> Execute loop
      */
     void fetch_decode_execute() {
-        uint op_code{};
+        uint16_t op_code{};
 
         std::cout << "RUNNING: start_address: " << mCPU.PC << std::endl;
         while (true) {
@@ -435,7 +435,9 @@ namespace Assembler {
 
 int main() {
 
-    std::string the_asm_file{"add_two.asm"};
+    //std::string the_asm_file{"add_two.asm"};
+    //std::string the_asm_file{"subt_two.asm"};
+    std::string the_asm_file{"loop_add.asm"};
 
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();

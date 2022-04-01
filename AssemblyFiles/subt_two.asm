@@ -1,10 +1,10 @@
-Load X
-Subt Y
-Store Z
-Halt
-X, Dec 10
-Y, Dec 5
-Z, Dec 0
+LOAD X
+SUB Y
+STORE Z
+HALT
+X, DEC 10
+Y, DEC 5
+Z, DEC 0
 END
 
 
