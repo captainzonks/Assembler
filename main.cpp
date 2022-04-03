@@ -12,6 +12,10 @@ namespace Assembler {
 #define CODE_SIZE 4096
     uint16_t machine_code[CODE_SIZE];
 
+// stack, just an array of memory
+#define STACK 4096
+    uint16_t stack[STACK];
+
     // globals
     uint16_t code_length;   // number of instructions assembled
     uint16_t start_address; // where program begins
@@ -27,13 +31,16 @@ namespace Assembler {
         uint16_t OUTPUT{};
     } mCPU;
 
-    // zero out memory and code segment
+    // zero out memory and code segment and stack
     void initialize() {
         for (size_t i{}; i < MEM_SIZE; ++i) {
             memory[i] = 0;
         }
         for (size_t i{}; i < CODE_SIZE; ++i) {
             machine_code[i] = 0;
+        }
+        for (size_t i{}; i < STACK; ++i) {
+            stack[i] = 0;
         }
     }
 
