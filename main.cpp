@@ -57,6 +57,10 @@ namespace Assembler {
 
     // Extended
 #define INSTR_CLEAR 0xA000
+#define INSTR_JUMPI 0xC000
+#define INSTR_JUMPS 0x0000
+#define INSTR_LOADI 0xB000
+#define INSTR_STOREI 0xD000
 
     /**
      * Simple tokenize function which splits a string of strings
@@ -66,7 +70,7 @@ namespace Assembler {
      * @param delimiter The character to split on
      * @return A vector of separate strings
      */
-    std::vector<std::string> tokenize(const std::string& in_string, char delimiter) {
+    std::vector<std::string> tokenize(const std::string &in_string, char delimiter) {
         std::string string;
         std::vector<std::string> vector;
 
@@ -114,7 +118,7 @@ namespace Assembler {
      * NOTE: No error checking. Everything is case sensitive.
      * @param asm_file_name The assembly file to open
      */
-    void assemble(const std::string& asm_file_name) {
+    void assemble(const std::string &asm_file_name) {
         std::fstream new_file;
         std::vector<std::string> asm_lines;
 
@@ -135,10 +139,10 @@ namespace Assembler {
         int address{};
         std::map<std::string, int> symbol_table;
 
-        for (const std::string& line: asm_lines) {
+        for (const std::string &line: asm_lines) {
 
             // split on space and get a vector of tokens
-            std::vector<std::string> token_one{ tokenize(line, ' ') };
+            std::vector<std::string> token_one{tokenize(line, ' ')};
 
             // END is hardcoded as the final instruction
             if (token_one.at(0) == "END") {
@@ -148,15 +152,15 @@ namespace Assembler {
             // is there a comma? we don't want it
             if (token_one.at(0).find(',') != std::string::npos) {
 
-                std::vector<std::string> token_two{ tokenize(token_one.at(0), ',') };
+                std::vector<std::string> token_two{tokenize(token_one.at(0), ',')};
 
                 // decrement, hardcoded in uppercase
                 if (token_one.at(1) == "DEC") {
                     // first string is the symbol
-                    std::string this_symbol{ token_two.at(0) };
+                    std::string this_symbol{token_two.at(0)};
 
                     // last string is the value (it's a string, so convert to int)
-                    int this_value{ std::stoi(token_one.at(2)) };
+                    int this_value{std::stoi(token_one.at(2))};
 
                     // add to symbol table
                     symbol_table.insert(std::pair<std::string, int>(this_symbol, address));
@@ -166,7 +170,7 @@ namespace Assembler {
                 }
                     // first string is the symbol, no value
                 else {
-                    std::string this_symbol{ token_two.at(0) };
+                    std::string this_symbol{token_two.at(0)};
                     symbol_table.insert(std::pair<std::string, int>(this_symbol, address));
                 }
             }
@@ -184,8 +188,8 @@ namespace Assembler {
         // op_code is upper 4 bits, symbol address is lower 12
         address = 0;    // reset address to 0
 
-        for (const std::string& line: asm_lines) {
-            std::vector<std::string> token_one{ tokenize(line, ' ') };
+        for (const std::string &line: asm_lines) {
+            std::vector<std::string> token_one{tokenize(line, ' ')};
             std::string op_code{};
             std::string symbol;
 
@@ -278,6 +282,34 @@ namespace Assembler {
             if (op_code == "CLEAR") {
                 // no address operand
                 machine_code[address] = INSTR_CLEAR;
+            }
+
+            if (op_code == "JMPI") {
+                // returns from subroutine call
+                // takes address operand
+                machine_code[address] = INSTR_JUMPI;
+                machine_code[address] |= symbol_table[symbol];
+            }
+
+            if (op_code == "JNS") {
+                // jump to subroutine
+                // takes address operand
+                machine_code[address] = INSTR_JUMPS;
+                machine_code[address] |= symbol_table[symbol];
+            }
+
+            if (op_code == "LOADI") {
+                // load indirect
+                // takes pointer operand
+                machine_code[address] = INSTR_LOADI;
+                machine_code[address] |= symbol_table[symbol];
+            }
+
+            if (op_code == "STOREI") {
+                // store indirect
+                // takes pointer operand
+                machine_code[address] = INSTR_STOREI;
+                machine_code[address] |= symbol_table[symbol];
             }
 
             address += 1;
@@ -396,6 +428,65 @@ namespace Assembler {
         mCPU.AC = 0; // AC <- 0
     }
 
+    void jumpi() {
+        // MAR contains IR[0-11]
+        //      indirect jump is going to the "X"
+        //      specified in the address field
+        mCPU.MBR = memory[mCPU.MAR];
+        mCPU.PC = mCPU.MBR;
+        std::cout << std::hex << "mCPU.PC == " << mCPU.PC << std::endl;
+    }
+
+    void jumps() {
+        // MAR contains IR[0-11]
+        //      jumps to subroutine
+        //      specified in the address field
+        // Save PC (return address) in memory location
+        // at the subroutine address
+        mCPU.MBR = mCPU.PC;
+        // MAR has IR[0-11] already
+        // so next call saves the PC into that memory slot
+        memory[mCPU.MAR] = mCPU.MBR;
+        // now move PC to the subroutine address (plus 1)
+        mCPU.MBR = mCPU.MAR;
+        // assumes hardware can do this! Needs a 1
+        // as a hardwired add option
+        mCPU.AC = 1;
+        mCPU.AC = mCPU.AC + mCPU.MBR;
+        mCPU.PC = mCPU.AC;
+        // could also do:
+        // mCPU.AC = mCPU.AC + mCPU.MBR; (still need to increment by 1)
+        // mCPU.PC = mCPU.AC;
+        // mCPU.PC = mCPU.PC + 1 (using same PC increment hardware capability in Fetch in main loop)
+        std::cout << std::hex << "mCPU.PC == " << mCPU.PC << std::endl;
+    }
+
+    void loadi() {
+        // MAR contains IR[0-11]
+        // load the address stored within pointer variable
+        mCPU.MBR = memory[mCPU.MAR];
+        // move the address from buffer to address register
+        mCPU.MAR = mCPU.MBR;
+        // load the value stored at the address provided by the pointer
+        mCPU.MBR = memory[mCPU.MAR];
+        // move value from buffer to accumulator
+        mCPU.AC = mCPU.MBR;
+        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
+    }
+
+    void storei() {
+        // MAR contains IR[0-11]
+        // load the address stored within pointer variable
+        mCPU.MBR = memory[mCPU.MAR];
+        // move the address from buffer to address register
+        mCPU.MAR = mCPU.MBR;
+        // move accumulator value into buffer
+        mCPU.MBR = mCPU.AC;
+        // move buffer value into memory at provided address
+        memory[mCPU.MAR] = mCPU.MBR;
+        std::cout << std::hex << "memory[mCPU.MAR] == " << memory[mCPU.MAR] << std::endl;
+    }
+
     /**
      * Simulates the Fetch -> Decode -> Execute loop
      */
@@ -451,6 +542,18 @@ namespace Assembler {
                 case INSTR_CLEAR:
                     clear();
                     break;
+                case INSTR_JUMPI:
+                    jumpi();
+                    break;
+                case INSTR_JUMPS:
+                    jumps();
+                    break;
+                case INSTR_LOADI:
+                    loadi();
+                    break;
+                case INSTR_STOREI:
+                    storei();
+                    break;
                 default:
                     std::cout << "UNKNOWN CMD" << std::endl;
                     return;
@@ -461,9 +564,10 @@ namespace Assembler {
 
 int main() {
 
-    std::string the_asm_file{"add_two.asm"};
+    //std::string the_asm_file{"add_two.asm"};
     //std::string the_asm_file{"subt_two.asm"};
     //std::string the_asm_file{ "loop_add.asm" };
+    std::string the_asm_file{"jump.asm"};
 
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();

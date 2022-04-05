@@ -1,21 +1,13 @@
 CLEAR
+JNS AddTwoProc
+OUTPUT
+HALT
+AddTwoProc, DEC 0
 LOAD X
 ADD Y
 STORE Z
-OUTPUT
-HALT
+JMPI AddTwoProc
 X, DEC 4
 Y, DEC 8
 Z, DEC 0
 END
-
-
-// Should assemble to 
-// 0000 0xA000
-// 0001 0x1004
-// 0002 0x3005
-// 0003 0x2006
-// 0004 0x7000
-// 0005 0x0004
-// 0006 0x0008
-// 0007 0x0000

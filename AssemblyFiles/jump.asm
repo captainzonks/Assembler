@@ -1,0 +1,18 @@
+JNS Label
+OUTPUT
+HALT
+Label, DEC 0
+LOAD X
+SUB Y
+STORE Z
+JNS Label2
+JMPI Label
+Label2, DEC 0
+ADD T
+STORE Z
+JMPI Label2
+T, DEC 13
+X, DEC 2
+Y, DEC 2
+Z, DEC 0
+END
