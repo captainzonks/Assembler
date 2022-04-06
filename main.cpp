@@ -23,6 +23,7 @@ namespace Assembler {
     // model for registers
     struct mCPU {
         int AC{};
+        uint16_t SP{};      // new register
         uint16_t PC{};
         uint16_t MAR{};
         uint16_t MBR{};
@@ -61,6 +62,10 @@ namespace Assembler {
 #define INSTR_JUMPS 0x0000
 #define INSTR_LOADI 0xB000
 #define INSTR_STOREI 0xD000
+
+    // SP extended architecture
+#define INSTR_PUSH 0xE000
+#define INSTR_POP 0xF000
 
     /**
      * Simple tokenize function which splits a string of strings
@@ -312,6 +317,18 @@ namespace Assembler {
                 machine_code[address] |= symbol_table[symbol];
             }
 
+            if (op_code == "PUSH") {
+                // push AC value to stack
+                machine_code[address] = INSTR_PUSH;
+            }
+
+            if (op_code == "POP") {
+                // pop from stack
+                // takes address operand
+                machine_code[address] = INSTR_POP;
+                machine_code[address] |= symbol_table[symbol];
+            }
+
             address += 1;
             code_length += 1;
         }
@@ -487,6 +504,40 @@ namespace Assembler {
         std::cout << std::hex << "memory[mCPU.MAR] == " << memory[mCPU.MAR] << std::endl;
     }
 
+    void push() {
+        // store the value in the AC on the stack
+        stack[mCPU.SP] = mCPU.AC;
+        // load the stack pointer into the buffer
+        mCPU.MBR = mCPU.SP;
+        // load the stack pointer to the accumulator
+        mCPU.AC = mCPU.MBR;
+        // increment by a hardwired 1
+        mCPU.AC += 1;
+        // move value of AC back to buffer register
+        mCPU.MBR = mCPU.AC;
+        // move from buffer to the SP
+        mCPU.SP = mCPU.MBR;
+        std::cout << std::hex << "Value pushed to stack == " << stack[mCPU.SP - 1] << std::endl;
+    }
+
+    void pop() {
+        // MAR contains IR[0-11]
+        
+        mCPU.MBR = stack[mCPU.SP - 1];        // MBR <- stack top value
+        memory[mCPU.MAR] = mCPU.MBR;          // M[MAR] <- MBR
+        // move the SP value to the buffer
+        mCPU.MBR = mCPU.SP;
+        // move the value of SP from the buffer to the accumulator
+        mCPU.AC = mCPU.MBR;
+        // decrement the value of AC
+        mCPU.AC -= 1;
+        // move from the AC to the buffer
+        mCPU.MBR = mCPU.AC;
+        // move from the buffer to the SP
+        mCPU.SP = mCPU.MBR;
+        std::cout << std::hex << "Value popped from stack == " << stack[mCPU.SP] << std::endl;
+    }
+
     /**
      * Simulates the Fetch -> Decode -> Execute loop
      */
@@ -554,6 +605,12 @@ namespace Assembler {
                 case INSTR_STOREI:
                     storei();
                     break;
+                case INSTR_PUSH:
+                    push();
+                    break;
+                case INSTR_POP:
+                    pop();
+                    break;
                 default:
                     std::cout << "UNKNOWN CMD" << std::endl;
                     return;
@@ -564,10 +621,11 @@ namespace Assembler {
 
 int main() {
 
-    //std::string the_asm_file{"add_two.asm"};
-    //std::string the_asm_file{"subt_two.asm"};
-    //std::string the_asm_file{ "loop_add.asm" };
-    std::string the_asm_file{"jump.asm"};
+//    std::string the_asm_file{"add_two.asm"};
+//    std::string the_asm_file{"subt_two.asm"};
+//    std::string the_asm_file{ "loop_add.asm" };
+//    std::string the_asm_file{"jump.asm"};
+    std::string the_asm_file{"stack.asm"};
 
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();
