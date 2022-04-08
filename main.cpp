@@ -57,10 +57,10 @@ namespace Assembler {
 #define INSTR_JUMPX 0x9000
 
     // Extended
-#define INSTR_CLEAR 0xA000
-#define INSTR_JUMPI 0xC000
 #define INSTR_JUMPS 0x0000
+#define INSTR_CLEAR 0xA000
 #define INSTR_LOADI 0xB000
+#define INSTR_RET 0xC000
 #define INSTR_STOREI 0xD000
 
     // SP extended architecture
@@ -159,7 +159,7 @@ namespace Assembler {
 
                 std::vector<std::string> token_two{tokenize(token_one.at(0), ',')};
 
-                // decrement, hardcoded in uppercase
+                // decimal, hardcoded in uppercase
                 if (token_one.at(1) == "DEC") {
                     // first string is the symbol
                     std::string this_symbol{token_two.at(0)};
@@ -227,6 +227,14 @@ namespace Assembler {
                 // do nothing, just increment address, code length
             }
 
+            if (op_code == "PROC") {
+                // do nothing
+            }
+
+            if (op_code == "ENDP") {
+                // do nothing
+            }
+
             if (op_code == "LOAD") {
                 // takes address operand
                 machine_code[address] = INSTR_LOADX;
@@ -289,14 +297,12 @@ namespace Assembler {
                 machine_code[address] = INSTR_CLEAR;
             }
 
-            if (op_code == "JMPI") {
-                // returns from subroutine call
-                // takes address operand
-                machine_code[address] = INSTR_JUMPI;
-                machine_code[address] |= symbol_table[symbol];
+            if (op_code == "RET") {
+                // no address operand
+                machine_code[address] = INSTR_RET;
             }
 
-            if (op_code == "JNS") {
+            if (op_code == "CALL") {
                 // jump to subroutine
                 // takes address operand
                 machine_code[address] = INSTR_JUMPS;
@@ -389,7 +395,8 @@ namespace Assembler {
     }
 
     void input() {
-        std::cout << "INPUT X" << std::endl;
+        std::cout << "INPUT X: ";
+        std::cin >> mCPU.INPUT;
         mCPU.AC = static_cast<int>(mCPU.INPUT);
     }
 
@@ -445,25 +452,59 @@ namespace Assembler {
         mCPU.AC = 0; // AC <- 0
     }
 
-    void jumpi() {
+    void ret() {
         // MAR contains IR[0-11]
-        //      indirect jump is going to the "X"
-        //      specified in the address field
-        mCPU.MBR = memory[mCPU.MAR];
-        mCPU.PC = mCPU.MBR;
-        std::cout << std::hex << "mCPU.PC == " << mCPU.PC << std::endl;
+        // Assumes return address is at top of stack
+
+        /******* POP return address off stack ***********/
+        mCPU.MBR = stack[mCPU.SP - 1];          // MBR <- stack top value
+        // set the PC to the value retrieved from top of stack
+        mCPU.PC = mCPU.MBR;                     // M[MAR] <- PC
+        // move the SP value to the buffer
+        mCPU.MBR = mCPU.SP;
+        // move the value of SP from the buffer to the accumulator
+        mCPU.AC = mCPU.MBR;
+        // decrement the value of AC
+        mCPU.AC -= 1;
+        // move from the AC to the buffer
+        mCPU.MBR = mCPU.AC;
+        // move from the buffer to the SP
+        mCPU.SP = mCPU.MBR;
+        /***********************************************/
+
+        std::cout << "RETURN : mCPU.PC == " << mCPU.PC << std::endl;
     }
 
     void jumps() {
         // MAR contains IR[0-11]
         //      jumps to subroutine
         //      specified in the address field
+
         // Save PC (return address) in memory location
         // at the subroutine address
+
         mCPU.MBR = mCPU.PC;
+
         // MAR has IR[0-11] already
-        // so next call saves the PC into that memory slot
-        memory[mCPU.MAR] = mCPU.MBR;
+
+        // move PC to AC to push it
+        mCPU.AC = mCPU.MBR;
+
+        /***** PUSH return address to stack */
+        // store the value in the AC on the stack
+        stack[mCPU.SP] = mCPU.AC;
+        // load the stack pointer into the buffer
+        mCPU.MBR = mCPU.SP;
+        // load the stack pointer to the accumulator
+        mCPU.AC = mCPU.MBR;
+        // increment by a hardwired 1
+        mCPU.AC += 1;
+        // move value of AC back to buffer register
+        mCPU.MBR = mCPU.AC;
+        // move from buffer to the SP
+        mCPU.SP = mCPU.MBR;
+        /************************************/
+
         // now move PC to the subroutine address (plus 1)
         mCPU.MBR = mCPU.MAR;
         // assumes hardware can do this! Needs a 1
@@ -475,7 +516,7 @@ namespace Assembler {
         // mCPU.AC = mCPU.AC + mCPU.MBR; (still need to increment by 1)
         // mCPU.PC = mCPU.AC;
         // mCPU.PC = mCPU.PC + 1 (using same PC increment hardware capability in Fetch in main loop)
-        std::cout << std::hex << "mCPU.PC == " << mCPU.PC << std::endl;
+        std::cout << std::hex << "CALL : mCPU.PC == " << mCPU.PC << std::endl;
     }
 
     void loadi() {
@@ -522,7 +563,7 @@ namespace Assembler {
 
     void pop() {
         // MAR contains IR[0-11]
-        
+
         mCPU.MBR = stack[mCPU.SP - 1];        // MBR <- stack top value
         memory[mCPU.MAR] = mCPU.MBR;          // M[MAR] <- MBR
         // move the SP value to the buffer
@@ -593,9 +634,12 @@ namespace Assembler {
                 case INSTR_CLEAR:
                     clear();
                     break;
-                case INSTR_JUMPI:
-                    jumpi();
+                case INSTR_RET:
+                    ret();
                     break;
+//                case INSTR_JUMPI:
+//                    jumpi();
+//                    break;
                 case INSTR_JUMPS:
                     jumps();
                     break;
@@ -621,11 +665,11 @@ namespace Assembler {
 
 int main() {
 
-//    std::string the_asm_file{"add_two.asm"};
+    std::string the_asm_file{"add_two.asm"};
 //    std::string the_asm_file{"subt_two.asm"};
 //    std::string the_asm_file{ "loop_add.asm" };
 //    std::string the_asm_file{"jump.asm"};
-    std::string the_asm_file{"stack.asm"};
+//    std::string the_asm_file{"stack.asm"};
 
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();

@@ -1,13 +1,24 @@
-CLEAR
-JNS AddTwoProc
-OUTPUT
-HALT
-AddTwoProc, DEC 0
-LOAD X
-ADD Y
-STORE Z
-JMPI AddTwoProc
 X, DEC 4
 Y, DEC 8
 Z, DEC 0
+
+CLEAR
+CALL AddTwoProc
+CALL AddAgainProc
+LOAD Z
+OUTPUT
+HALT
+AddTwoProc, PROC
+LOAD X
+ADD Y
+STORE Z
+RET
+AddTwoProc, ENDP
+AddAgainProc, PROC
+LOAD Z
+ADD X
+STORE Z
+RET
+AddAgainProc, ENDP
+
 END
