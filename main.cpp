@@ -12,9 +12,9 @@ namespace Assembler {
 #define CODE_SIZE 4096
     uint16_t machine_code[CODE_SIZE];
 
-// stack, just an array of memory
-#define STACK 4096
-    uint16_t stack[STACK];
+//// stack, just an array of memory
+//#define STACK 4096
+//    uint16_t stack[STACK];
 
     // globals
     uint16_t code_length;   // number of instructions assembled
@@ -23,7 +23,7 @@ namespace Assembler {
     // model for registers
     struct mCPU {
         int AC{};
-        uint16_t SP{};      // new register
+        uint16_t SP{2000};      // new register, stack pointer points at 2000 in the main memory
         uint16_t PC{};
         uint16_t MAR{};
         uint16_t MBR{};
@@ -40,9 +40,9 @@ namespace Assembler {
         for (size_t i{}; i < CODE_SIZE; ++i) {
             machine_code[i] = 0;
         }
-        for (size_t i{}; i < STACK; ++i) {
-            stack[i] = 0;
-        }
+//        for (size_t i{}; i < STACK; ++i) {
+//            stack[i] = 0;
+//        }
     }
 
     // Basic
@@ -457,7 +457,7 @@ namespace Assembler {
         // Assumes return address is at top of stack
 
         /******* POP return address off stack ***********/
-        mCPU.MBR = stack[mCPU.SP - 1];          // MBR <- stack top value
+        mCPU.MBR = memory[mCPU.SP - 1];          // MBR <- stack top value
         // set the PC to the value retrieved from top of stack
         mCPU.PC = mCPU.MBR;                     // M[MAR] <- PC
         // move the SP value to the buffer
@@ -492,7 +492,7 @@ namespace Assembler {
 
         /***** PUSH return address to stack */
         // store the value in the AC on the stack
-        stack[mCPU.SP] = mCPU.AC;
+        memory[mCPU.SP] = mCPU.AC;
         // load the stack pointer into the buffer
         mCPU.MBR = mCPU.SP;
         // load the stack pointer to the accumulator
@@ -547,7 +547,7 @@ namespace Assembler {
 
     void push() {
         // store the value in the AC on the stack
-        stack[mCPU.SP] = mCPU.AC;
+        memory[mCPU.SP] = mCPU.AC;
         // load the stack pointer into the buffer
         mCPU.MBR = mCPU.SP;
         // load the stack pointer to the accumulator
@@ -558,13 +558,13 @@ namespace Assembler {
         mCPU.MBR = mCPU.AC;
         // move from buffer to the SP
         mCPU.SP = mCPU.MBR;
-        std::cout << std::hex << "Value pushed to stack == " << stack[mCPU.SP - 1] << std::endl;
+        std::cout << std::hex << "Value pushed to stack == " << memory[mCPU.SP - 1] << std::endl;
     }
 
     void pop() {
         // MAR contains IR[0-11]
 
-        mCPU.MBR = stack[mCPU.SP - 1];        // MBR <- stack top value
+        mCPU.MBR = memory[mCPU.SP - 1];        // MBR <- stack top value
         memory[mCPU.MAR] = mCPU.MBR;          // M[MAR] <- MBR
         // move the SP value to the buffer
         mCPU.MBR = mCPU.SP;
@@ -576,7 +576,7 @@ namespace Assembler {
         mCPU.MBR = mCPU.AC;
         // move from the buffer to the SP
         mCPU.SP = mCPU.MBR;
-        std::cout << std::hex << "Value popped from stack == " << stack[mCPU.SP] << std::endl;
+        std::cout << std::hex << "Value popped from stack == " << memory[mCPU.SP] << std::endl;
     }
 
     /**
@@ -665,11 +665,11 @@ namespace Assembler {
 
 int main() {
 
-    std::string the_asm_file{"add_two.asm"};
+//    std::string the_asm_file{"add_two.asm"};
 //    std::string the_asm_file{"subt_two.asm"};
 //    std::string the_asm_file{ "loop_add.asm" };
 //    std::string the_asm_file{"jump.asm"};
-//    std::string the_asm_file{"stack.asm"};
+    std::string the_asm_file{"stack.asm"};
 
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();
