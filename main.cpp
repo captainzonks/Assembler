@@ -159,6 +159,8 @@ namespace Assembler {
 
                 std::vector<std::string> token_two{tokenize(token_one.at(0), ',')};
 
+                if (token_one.empty()) continue; // to prevent out of range error
+
                 // decimal, hardcoded in uppercase
                 if (token_one.at(1) == "DEC") {
                     // first string is the symbol
@@ -195,6 +197,9 @@ namespace Assembler {
 
         for (const std::string &line: asm_lines) {
             std::vector<std::string> token_one{tokenize(line, ' ')};
+
+            if (token_one.empty()) continue; // to prevent out of range error
+
             std::string op_code{};
             std::string symbol;
 
@@ -665,12 +670,13 @@ namespace Assembler {
 
 int main() {
 
-//    std::string the_asm_file{"add_two.asm"};
+    std::string the_asm_file{"add_two.asm"};
 //    std::string the_asm_file{"subt_two.asm"};
 //    std::string the_asm_file{ "loop_add.asm" };
 //    std::string the_asm_file{"jump.asm"};
-    std::string the_asm_file{"stack.asm"};
+//    std::string the_asm_file{"stack.asm"};
 
+    Assembler::initialize();
     Assembler::assemble(the_asm_file);
     Assembler::load_code_into_memory();
     Assembler::fetch_decode_execute();
