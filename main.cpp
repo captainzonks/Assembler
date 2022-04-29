@@ -12,10 +12,6 @@ namespace Assembler {
 #define CODE_SIZE 4096
     uint16_t machine_code[CODE_SIZE];
 
-//// stack, just an array of memory
-//#define STACK 4096
-//    uint16_t stack[STACK];
-
     // globals
     uint16_t code_length;   // number of instructions assembled
     uint16_t start_address; // where program begins
@@ -57,15 +53,15 @@ namespace Assembler {
 #define INSTR_JUMPX 0x9000
 
     // Extended
-#define INSTR_JUMPS 0x0000
-#define INSTR_CLEAR 0xA000
+//#define INSTR_CLEAR 0xA000
 #define INSTR_LOADI 0xB000
-#define INSTR_RET 0xC000
 #define INSTR_STOREI 0xD000
 
     // SP extended architecture
 #define INSTR_PUSH 0xE000
 #define INSTR_POP 0xF000
+#define INSTR_CALL 0xA000
+#define INSTR_RET 0xC000
 
     /**
      * Simple tokenize function which splits a string of strings
@@ -175,6 +171,20 @@ namespace Assembler {
                     // load data value into address location in machine code
                     machine_code[address] = this_value;
                 }
+//                if (token_one.at(1) == "HEX")
+//                {
+//                    // first string is the symbol
+//                    std::string this_symbol{token_two.at(0)};
+//
+//                    // last string is the value (it's a string, so convert to int)
+//                    int this_value{std::stoi(token_one.at(2))};
+//
+//                    // add to symbol table
+//                    symbol_table.insert(std::pair<std::string, int>(this_symbol, address));
+//
+//                    // load data value into address location
+//                    machine_code[address] = this_value;
+//                }
                     // first string is the symbol, no value
                 else {
                     std::string this_symbol{token_two.at(0)};
@@ -226,60 +236,40 @@ namespace Assembler {
             if (op_code == "END")
                 break;
 
-            // symbols are already loaded (value stored at address)
-            // these are split to three, look in location 1 for op_code
-            if (op_code == "DEC") {
+                // symbols are already loaded (value stored at address)
+                // these are split to three, look in location 1 for op_code
+            else if (op_code == "DEC") {
                 // do nothing, just increment address, code length
-            }
-
-            if (op_code == "PROC") {
+            } else if (op_code == "PROC") {
                 // do nothing
-            }
-
-            if (op_code == "ENDP") {
+            } else if (op_code == "ENDP") {
                 // do nothing
-            }
-
-            if (op_code == "LOAD") {
+            } else if (op_code == "LOAD") {
                 // takes address operand
                 machine_code[address] = INSTR_LOADX;
                 machine_code[address] |= symbol_table.at(symbol);
-            }
-
-            if (op_code == "STORE") {
+            } else if (op_code == "STORE") {
                 // takes address operand
                 machine_code[address] = INSTR_STOREX;
                 machine_code[address] |= symbol_table.at(symbol);
-            }
-
-            if (op_code == "ADD") {
+            } else if (op_code == "ADD") {
                 // takes address operand
                 machine_code[address] = INSTR_ADD;
                 machine_code[address] |= symbol_table.at(symbol);
-            }
-
-            if (op_code == "SUB") {
+            } else if (op_code == "SUB") {
                 // takes address operand
                 machine_code[address] = INSTR_SUB;
                 machine_code[address] |= symbol_table.at(symbol);
-            }
-
-            if (op_code == "INPUT") {
+            } else if (op_code == "INPUT") {
                 // no address operand
                 machine_code[address] = INSTR_INPUT;
-            }
-
-            if (op_code == "OUTPUT") {
+            } else if (op_code == "OUTPUT") {
                 // no address operand
                 machine_code[address] = INSTR_OUTPUT;
-            }
-
-            if (op_code == "HALT") {
+            } else if (op_code == "HALT") {
                 // no address operand
                 machine_code[address] = INSTR_HALT;
-            }
-
-            if (op_code == "SKIPCOND") {
+            } else if (op_code == "SKIPCOND") {
                 // TODO: verify if this is right
                 // the final operand is a number representing the skip condition
                 // SKIPCOND 000 : skip the next instruction if value AC < 0
@@ -289,55 +279,40 @@ namespace Assembler {
                 machine_code[address] = INSTR_SKIPCOND;
                 // the skip string is hex to use base 16
                 machine_code[address] |= std::stoi(symbol, nullptr, 16);
-            }
-
-            if (op_code == "JMP") {
+            } else if (op_code == "JMP") {
                 // takes address operand
                 machine_code[address] = INSTR_JUMPX;
                 machine_code[address] |= symbol_table.at(symbol);
-            }
-
-            if (op_code == "CLEAR") {
+            } else if (op_code == "CLEAR") {
                 // no address operand
-                machine_code[address] = INSTR_CLEAR;
+//                machine_code[address] = INSTR_CLEAR;
             }
-
-            if (op_code == "RET") {
+            else if (op_code == "RET") {
                 // no address operand
                 machine_code[address] = INSTR_RET;
-            }
-
-            if (op_code == "CALL") {
+            } else if (op_code == "CALL") {
                 // jump to subroutine
                 // takes address operand
-                machine_code[address] = INSTR_JUMPS;
-                machine_code[address] |= symbol_table[symbol];
-            }
-
-            if (op_code == "LOADI") {
+                machine_code[address] = INSTR_CALL;
+                machine_code[address] |= symbol_table.at(symbol);
+            } else if (op_code == "LOADI") {
                 // load indirect
                 // takes pointer operand
                 machine_code[address] = INSTR_LOADI;
-                machine_code[address] |= symbol_table[symbol];
-            }
-
-            if (op_code == "STOREI") {
+                machine_code[address] |= symbol_table.at(symbol);
+            } else if (op_code == "STOREI") {
                 // store indirect
                 // takes pointer operand
                 machine_code[address] = INSTR_STOREI;
-                machine_code[address] |= symbol_table[symbol];
-            }
-
-            if (op_code == "PUSH") {
+                machine_code[address] |= symbol_table.at(symbol);
+            } else if (op_code == "PUSH") {
                 // push AC value to stack
                 machine_code[address] = INSTR_PUSH;
-            }
-
-            if (op_code == "POP") {
+            } else if (op_code == "POP") {
                 // pop from stack
                 // takes address operand
                 machine_code[address] = INSTR_POP;
-                machine_code[address] |= symbol_table[symbol];
+                machine_code[address] |= symbol_table.at(symbol);
             }
 
             address += 1;
@@ -362,45 +337,45 @@ namespace Assembler {
     // RTL to manipulate registers
 
     void load_x() {
-        std::cout << "LOAD X -> ";
+//        std::cout << "LOAD X -> ";
 
         mCPU.MBR = memory[mCPU.MAR];            // MBR <- M[MAR]
         mCPU.AC = static_cast<int>(mCPU.MBR);   // AC <- MBR
 
-        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
+//        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
     }
 
     void store_x() {
-        std::cout << "STORE X -> ";
+//        std::cout << "STORE X -> ";
 
         mCPU.MBR = mCPU.AC;             // MBR <- AC
         memory[mCPU.MAR] = mCPU.MBR;    // M[MAR] <- MBR
 
-        std::cout << std::hex << "mem[mCPU.MAR] == " << memory[mCPU.MAR] << std::endl;
+//        std::cout << std::hex << "mem[mCPU.MAR] == " << memory[mCPU.MAR] << std::endl;
     }
 
     void add_x() {
-        std::cout << "ADD X -> ";
+//        std::cout << "ADD X -> ";
 
         mCPU.MBR = memory[mCPU.MAR];                      // MBR <- M[MAR]
         mCPU.AC = static_cast<int>(mCPU.AC + mCPU.MBR);   // AC = AC + MBR
 
-        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
+//        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
     }
 
     void sub_x() {
         // need to convert to two's complement and add?
         // tricky
-        std::cout << "SUB X -> ";
+//        std::cout << "SUB X -> ";
 
         mCPU.MBR = memory[mCPU.MAR];                    // MBR <- M[MAR]
         mCPU.AC = static_cast<int>(mCPU.AC - mCPU.MBR); // AC = AC - MBR
 
-        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
+//        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
     }
 
     void input() {
-        std::cout << "INPUT X: ";
+//        std::cout << "INPUT X: ";
         std::cin >> mCPU.INPUT;
         mCPU.AC = static_cast<int>(mCPU.INPUT);
     }
@@ -408,7 +383,7 @@ namespace Assembler {
     void output() {
         std::cout << "OUTPUT X == ";
         mCPU.OUTPUT = mCPU.AC;
-        std::cout << "Value: " << std::dec << mCPU.OUTPUT << std::endl;
+        std::cout << "Value: " << std::dec << (char)mCPU.OUTPUT << std::endl;
     }
 
     void halt() {
@@ -419,8 +394,8 @@ namespace Assembler {
         // manipulate PC
         // MAR has IR from decode func
 
-        std::cout << "SKIPCOND" << std::hex << mCPU.MAR << std::endl;
-        std::cout << "..... AC: " << mCPU.AC << std::endl;
+//        std::cout << "SKIPCOND" << std::hex << mCPU.MAR << std::endl;
+//        std::cout << "..... AC: " << mCPU.AC << std::endl;
 
         // skipcond 000 : skips the next instruction if value AC < 0
         // IR[11-10] == 0
@@ -434,7 +409,7 @@ namespace Assembler {
         else if (mCPU.MAR == 0x400) {
             if (mCPU.AC == 0) {
                 mCPU.PC += 1;
-                std::cout << "..... INC PC ....." << std::endl;
+//                std::cout << "..... INC PC ....." << std::endl;
             }
         }
 
@@ -448,12 +423,12 @@ namespace Assembler {
 
     void jumpx() {
         // MAR contains IR[11-0]
-        std::cout << "JUMP X" << std::endl;
+//        std::cout << "JUMP X" << std::endl;
         mCPU.PC = mCPU.MAR;
     }
 
     void clear() {
-        std::cout << "CLEAR" << std::endl;
+//        std::cout << "CLEAR" << std::endl;
         mCPU.AC = 0; // AC <- 0
     }
 
@@ -477,12 +452,12 @@ namespace Assembler {
         mCPU.SP = mCPU.MBR;
         /***********************************************/
 
-        std::cout << "RETURN : mCPU.PC == " << mCPU.PC << std::endl;
+//        std::cout << "RETURN : mCPU.PC == " << mCPU.PC << std::endl;
     }
 
-    void jumps() {
+    void call() {
         // MAR contains IR[0-11]
-        //      jumps to subroutine
+        //      call to subroutine
         //      specified in the address field
 
         // Save PC (return address) in memory location
@@ -521,7 +496,7 @@ namespace Assembler {
         // mCPU.AC = mCPU.AC + mCPU.MBR; (still need to increment by 1)
         // mCPU.PC = mCPU.AC;
         // mCPU.PC = mCPU.PC + 1 (using same PC increment hardware capability in Fetch in main loop)
-        std::cout << std::hex << "CALL : mCPU.PC == " << mCPU.PC << std::endl;
+//        std::cout << std::hex << "CALL : mCPU.PC == " << mCPU.PC << std::endl;
     }
 
     void loadi() {
@@ -534,7 +509,7 @@ namespace Assembler {
         mCPU.MBR = memory[mCPU.MAR];
         // move value from buffer to accumulator
         mCPU.AC = mCPU.MBR;
-        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
+//        std::cout << std::hex << "mCPU.AC == " << mCPU.AC << std::endl;
     }
 
     void storei() {
@@ -547,7 +522,7 @@ namespace Assembler {
         mCPU.MBR = mCPU.AC;
         // move buffer value into memory at provided address
         memory[mCPU.MAR] = mCPU.MBR;
-        std::cout << std::hex << "memory[mCPU.MAR] == " << memory[mCPU.MAR] << std::endl;
+//        std::cout << std::hex << "memory[mCPU.MAR] == " << memory[mCPU.MAR] << std::endl;
     }
 
     void push() {
@@ -563,7 +538,7 @@ namespace Assembler {
         mCPU.MBR = mCPU.AC;
         // move from buffer to the SP
         mCPU.SP = mCPU.MBR;
-        std::cout << std::hex << "Value pushed to stack == " << memory[mCPU.SP - 1] << std::endl;
+//        std::cout << std::hex << "Value pushed to stack == " << memory[mCPU.SP - 1] << std::endl;
     }
 
     void pop() {
@@ -581,7 +556,7 @@ namespace Assembler {
         mCPU.MBR = mCPU.AC;
         // move from the buffer to the SP
         mCPU.SP = mCPU.MBR;
-        std::cout << std::hex << "Value popped from stack == " << memory[mCPU.SP] << std::endl;
+//        std::cout << std::hex << "Value popped from stack == " << memory[mCPU.SP] << std::endl;
     }
 
     /**
@@ -590,11 +565,11 @@ namespace Assembler {
     void fetch_decode_execute() {
         uint16_t op_code{};
 
-        std::cout << "RUNNING: start_address: " << mCPU.PC << std::endl;
+//        std::cout << "RUNNING: start_address: " << mCPU.PC << std::endl;
         while (true) {
-            std::cout << std::endl;
-            std::cout << "PC: " << mCPU.PC << std::endl;
-            std::cout << "memory: " << std::hex << memory[mCPU.PC] << std::endl;
+//            std::cout << std::endl;
+//            std::cout << "PC: " << mCPU.PC << std::endl;
+//            std::cout << "memory: " << std::hex << memory[mCPU.PC] << std::endl;
 
             // Fetch
             mCPU.MAR = mCPU.PC;             // MAR <- PC
@@ -605,7 +580,7 @@ namespace Assembler {
             op_code = mCPU.IR & 0xF000;     // decode IR[15-12]
             mCPU.MAR = mCPU.IR & 0x0FFF;    // MAR IR[11-0]
 
-            std::cout << "op_code: " << op_code << " address: " << mCPU.MAR << std::endl;
+//            std::cout << "op_code: " << op_code << " address: " << mCPU.MAR << std::endl;
 
             // Execute
             switch (op_code) {
@@ -636,17 +611,14 @@ namespace Assembler {
                 case INSTR_JUMPX:
                     jumpx();
                     break;
-                case INSTR_CLEAR:
-                    clear();
-                    break;
+//                case INSTR_CLEAR:
+//                    clear();
+//                    break;
                 case INSTR_RET:
                     ret();
                     break;
-//                case INSTR_JUMPI:
-//                    jumpi();
-//                    break;
-                case INSTR_JUMPS:
-                    jumps();
+                case INSTR_CALL:
+                    call();
                     break;
                 case INSTR_LOADI:
                     loadi();
@@ -670,11 +642,12 @@ namespace Assembler {
 
 int main() {
 
-    std::string the_asm_file{"add_two.asm"};
+//    std::string the_asm_file{"add_two.asm"};
 //    std::string the_asm_file{"subt_two.asm"};
 //    std::string the_asm_file{ "loop_add.asm" };
 //    std::string the_asm_file{"jump.asm"};
 //    std::string the_asm_file{"stack.asm"};
+    std::string the_asm_file{"string.asm"};
 
     Assembler::initialize();
     Assembler::assemble(the_asm_file);

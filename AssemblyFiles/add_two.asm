@@ -1,7 +1,3 @@
-X, DEC 4
-Y, DEC 8
-Z, DEC 0
-
 CLEAR
 CALL AddTwoProc
 CALL AddAgainProc
@@ -20,5 +16,9 @@ ADD X
 STORE Z
 RET
 AddAgainProc, ENDP
+
+X, DEC 4
+Y, DEC 8
+Z, DEC 0
 
 END
